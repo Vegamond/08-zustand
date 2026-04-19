@@ -1,0 +1,84 @@
+'use client';
+
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useDebounce } from 'use-debounce';
+import { fetchNotes } from '@/lib/api';
+import SearchBox from '@/components/SearchBox/SearchBox';
+import NoteList from '@/components/NoteList/NoteList';
+import NoteForm from '@/components/NoteForm/NoteForm';
+import Pagination from '@/components/Pagination/Pagination';
+import Modal from '@/components/Modal/Modal';
+import css from './NotesPage.module.css';
+
+const PER_PAGE = 12;
+
+export default function NotesClient() {
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
+  const [debouncedSearch] = useDebounce(search, 500);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['notes', { page, perPage: PER_PAGE, search: debouncedSearch }],
+    queryFn: () =>
+      fetchNotes({
+        page,
+        perPage: PER_PAGE,
+        search: debouncedSearch,
+      }),
+    placeholderData: previousData => previousData,
+  });
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
+  const openForm = () => {
+    setIsFormOpen(true);
+  };
+
+  const closeForm = () => {
+    setIsFormOpen(false);
+  };
+
+  if (isLoading) {
+    return <p>Loading, please wait...</p>;
+  }
+
+  if (error) {
+    return <p>Something went wrong.</p>;
+  }
+
+  const notes = data?.notes ?? [];
+
+  return (
+    <main className={css.app}>
+      <div className={css.toolbar}>
+        <SearchBox value={search} onChange={handleSearchChange} />
+
+        <button className={css.button} type="button" onClick={openForm}>
+          Create note
+        </button>
+      </div>
+
+      {isFormOpen && (
+        <Modal onClose={closeForm}>
+          <NoteForm onClose={closeForm} />
+        </Modal>
+      )}
+
+      {notes.length > 0 ? <NoteList notes={notes} /> : <p>No notes found.</p>}
+
+      {data && data.totalPages > 1 && (
+        <Pagination
+          pageCount={data.totalPages}
+          currentPage={page}
+          onPageChange={setPage}
+        />
+      )}
+    </main>
+  );
+}
