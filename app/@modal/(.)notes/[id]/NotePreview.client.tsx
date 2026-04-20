@@ -15,10 +15,12 @@ export default function NotePreview({ id }: NotePreviewProps) {
   const { data: note, isLoading, error } = useQuery({
     queryKey: ['note', id],
     queryFn: () => fetchNoteById(id),
+    enabled: Boolean(id),
+    refetchOnMount: false,
   });
   const handleClose = () => router.back();
   if (isLoading) return <Modal onClose={handleClose}><p>Loading...</p></Modal>;
-  if (error || !note) return <Modal onClose={handleClose}><p>Error</p></Modal>;
+  if (error || !note) return <Modal onClose={handleClose}><p>Something went wrong.</p></Modal>;
   return (
     <Modal onClose={handleClose}>
       <article className={css.wrapper}>
