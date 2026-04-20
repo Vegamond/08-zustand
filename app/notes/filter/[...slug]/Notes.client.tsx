@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useDebounce } from 'use-debounce';
+import Link from 'next/link';
 import { fetchNotes } from '@/lib/api';
 import SearchBox from '@/components/SearchBox/SearchBox';
 import NoteList from '@/components/NoteList/NoteList';
-import NoteForm from '@/components/NoteForm/NoteForm';
 import Pagination from '@/components/Pagination/Pagination';
-import Modal from '@/components/Modal/Modal';
+import css from './Notes.module.css';
 
 const PER_PAGE = 12;
 
@@ -19,7 +19,6 @@ interface NotesClientProps {
 export default function NotesClient({ initialTag = 'all' }: NotesClientProps) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [isFormOpen, setIsFormOpen] = useState(false);
   const [debouncedSearch] = useDebounce(search, 500);
 
   useEffect(() => {
@@ -30,7 +29,7 @@ export default function NotesClient({ initialTag = 'all' }: NotesClientProps) {
   const { data, isLoading, error } = useQuery({
     queryKey: ['notes', { page, perPage: PER_PAGE, search: debouncedSearch, tag: initialTag }],
     queryFn: () => fetchNotes({ page, perPage: PER_PAGE, search: debouncedSearch, tag: initialTag }),
-    placeholderData: previousData => previousData,
+    placeholderData: (previousData) => previousData,
   });
 
   if (isLoading) return <p>Loading, please wait...</p>;
@@ -42,12 +41,16 @@ export default function NotesClient({ initialTag = 'all' }: NotesClientProps) {
     <main>
       <div>
         <SearchBox value={search} onChange={(v) => { setSearch(v); setPage(1); }} />
-        <button type='button' onClick={() => setIsFormOpen(true)}>Create note</button>
+        <Link href="/notes/action/create">Create note +</Link>
       </div>
-      {isFormOpen && <Modal onClose={() => setIsFormOpen(false)}><NoteForm onClose={() => setIsFormOpen(false)} /></Modal>}
       {notes.length > 0 ? <NoteList notes={notes} /> : <p>No notes found.</p>}
-      {data && data.totalPages > 1 && <Pagination pageCount={data.totalPages} currentPage={page} onPageChange={setPage} />}
+      {data && data.totalPages > 1 && (
+        <Pagination
+          pageCount={data.totalPages}
+          currentPage={page}
+          onPageChange={setPage}
+        />
+      )}
     </main>
   );
 }
-

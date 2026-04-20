@@ -1,30 +1,32 @@
-import {
-  HydrationBoundary,
-  QueryClient,
-  dehydrate,
-} from '@tanstack/react-query';
+import type { Metadata } from 'next';
 import { fetchNoteById } from '@/lib/api';
 import NotePreview from '@/components/NotePreview/NotePreview';
 
-type Props = {
-  params: Promise<{
-    id: string;
-  }>;
-};
+interface Props {
+  params: Promise<{ id: string }>;
+}
 
-export default async function NotePreviewModalPage({ params }: Props) {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
+  const note = await fetchNoteById(id);
 
-  const queryClient = new QueryClient();
+  return {
+    title: `${note.title} | NoteHub`,
+    description: note.content,
+    openGraph: {
+      title: `${note.title} | NoteHub`,
+      description: note.content,
+      url: `https://08-zustand.vercel.app/notes/${id}`,
+      images: [
+        {
+          url: 'https://ac.goit.global/fullstack/react/notehub-og-meta.jpg',
+        },
+      ],
+    },
+  };
+}
 
-  await queryClient.prefetchQuery({
-    queryKey: ['note', id],
-    queryFn: () => fetchNoteById(id),
-  });
-
-  return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <NotePreview id={id} />
-    </HydrationBoundary>
-  );
+export default async function NoteDetailPage({ params }: Props) {
+  const { id } = await params;
+  return <NotePreview id={id} />;
 }
